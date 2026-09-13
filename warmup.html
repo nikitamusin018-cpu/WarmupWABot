@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прогрев</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        header h1 { color: #075e54; font-size: 24px; }
+        header h1 i { color: #ff6b6b; margin-right: 10px; }
+        
+        .btn-back { background: #075e54; color: white; padding: 10px 20px; border-radius: 50px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+        
+        .stats { display: flex; gap: 30px; flex-wrap: wrap; }
+        .stat-item { text-align: center; }
+        .stat-number { font-size: 28px; font-weight: bold; color: #075e54; }
+        .stat-label { font-size: 13px; color: #666; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .card-title { font-size: 17px; font-weight: 600; margin-bottom: 15px; color: #075e54; }
+        
+        .account-item { display: flex; align-items: center; padding: 10px 14px; border-radius: 10px; margin-bottom: 6px; background: #f8f9fa; border: 2px solid transparent; cursor: pointer; }
+        .account-item.active { border-color: #25d366; background: #e8f5e9; }
+        .account-item .num { font-weight: bold; color: #075e54; min-width: 40px; }
+        .account-item .info { flex: 1; margin-left: 10px; }
+        .account-item .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; }
+        .account-item .checkbox.checked { background: #25d366; border-color: #25d366; color: white; }
+        .account-item .checkbox i { display: none; font-size: 12px; }
+        .account-item .checkbox.checked i { display: block; }
+        
+        .duration-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .duration-btn { padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 16px; font-weight: 600; transition: 0.3s; }
+        .duration-btn:hover { border-color: #25d366; }
+        .duration-btn.active { background: #25d366; color: white; border-color: #25d366; }
+        
+        .btn-start { background: #25d366; color: white; border: none; padding: 14px; border-radius: 50px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-start.running { background: #ff6b6b; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        
+        .status { margin-top: 12px; text-align: center; padding: 10px; border-radius: 10px; background: #f8f9fa; color: #666; font-size: 14px; }
+        .status.running { background: #e8f5e9; color: #25d366; }
+        
+        .log { max-height: 400px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 10px; }
+        .log-item { padding: 8px 12px; margin-bottom: 5px; border-radius: 8px; background: white; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+        .log-item.like { border-left: 4px solid #25d366; }
+        .log-item.dislike { border-left: 4px solid #e74c3c; }
+        .log-item .icon { font-size: 20px; }
+        .log-item .text { flex: 1; }
+        .log-item .time { font-size: 11px; color: #999; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 14px 24px; border-radius: 12px; z-index: 9999; }
+        
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <a href="/" class="btn-back"><i class="fas fa-arrow-left"></i> Назад</a>
+                <h1><i class="fas fa-fire"></i> Прогрев</h1>
+            </div>
+            <div class="stats">
+                <div class="stat-item"><div class="stat-number" id="totalAccounts">0</div><div class="stat-label">Аккаунтов</div></div>
+                <div class="stat-item"><div class="stat-number" id="selectedCount">0</div><div class="stat-label">Выбрано</div></div>
+                <div class="stat-item"><div class="stat-number" id="sentCount">0</div><div class="stat-label">Отправлено</div></div>
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-users"></i> Аккаунты</div>
+                <div id="accountsList"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-sliders-h"></i> Настройки</div>
+                
+                <div style="margin-bottom:10px;font-weight:500;">Длительность прогрева:</div>
+                <div class="duration-buttons">
+                    <button class="duration-btn active" data-hours="3">3 часа</button>
+                    <button class="duration-btn" data-hours="6">6 часов</button>
+                    <button class="duration-btn" data-hours="12">12 часов</button>
+                </div>
+
+                <div style="background:#fff3cd;padding:10px;border-radius:10px;margin:15px 0;font-size:12px;color:#856404;">
+                    <i class="fas fa-info-circle"></i> Прогрев начнется через 20 минут после запуска<br>
+                    <i class="fas fa-clock"></i> Задержка: 50 сек между сообщениями<br>
+                    <i class="fas fa-image"></i> Фото каждое 6-е сообщение
+                </div>
+
+                <button class="btn-start" id="startBtn"><i class="fas fa-play"></i> Запустить прогрев</button>
+                <div class="status" id="status">Выберите 2+ аккаунта</div>
+            </div>
+
+            <div class="card" style="grid-column:1/-1;">
+                <div class="card-title"><i class="fas fa-history"></i> Лог прогрева</div>
+                <div class="log" id="log"><div style="text-align:center;padding:40px;color:#999;">Лог появится здесь</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="warmup.js"></script>
+</body>
+</html>

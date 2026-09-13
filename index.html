@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        header h1 { color: #075e54; font-size: 24px; }
+        header h1 i { color: #25d366; margin-right: 10px; }
+        
+        .btn { background: #25d366; color: white; border: none; padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn:hover { background: #128c7e; transform: scale(1.02); }
+        .btn-warmup { background: #ff6b6b; }
+        .btn-warmup:hover { background: #ee5a24; }
+        .btn-danger { background: #e74c3c; padding: 6px 14px; font-size: 12px; }
+        .btn-login { background: #075e54; padding: 6px 14px; font-size: 12px; color: white; border: none; border-radius: 50px; cursor: pointer; }
+        
+        .user-info { background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .user-info .label { font-size: 14px; color: #666; }
+        .user-info input { padding: 8px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .user-info input:focus { border-color: #25d366; outline: none; }
+        
+        .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .account-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #25d366; transition: 0.3s; }
+        .account-card.disconnected { border-left-color: #e74c3c; opacity: 0.7; }
+        .account-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .account-name { font-size: 16px; font-weight: 600; }
+        .account-status { font-size: 12px; padding: 3px 12px; border-radius: 50px; background: #e8f5e9; color: #2e7d32; }
+        .account-status.disconnected { background: #ffebee; color: #c62828; }
+        .account-index { color: #999; font-size: 12px; }
+        .account-number { color: #666; font-size: 13px; margin-bottom: 12px; }
+        .account-proxy { color: #999; font-size: 11px; margin-bottom: 12px; }
+        .account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .send-section { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-top: 20px; }
+        .send-section h3 { color: #075e54; margin-bottom: 15px; }
+        .send-form { display: flex; flex-wrap: wrap; gap: 10px; }
+        .send-form select, .send-form input { flex: 1; min-width: 150px; padding: 10px 16px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 14px; outline: none; background: white; }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; position: relative; }
+        .close { position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer; color: #999; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #25d366; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 14px 24px; border-radius: 12px; z-index: 9999; }
+        .empty-state { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state i { font-size: 48px; display: block; margin-bottom: 15px; }
+        
+        .code-display { background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; }
+        .code-digits { font-size: 42px; font-weight: bold; color: #075e54; letter-spacing: 8px; }
+        
+        @media (max-width: 768px) { .container { padding: 10px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-whatsapp"></i> WhatsApp Panel</h1>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button onclick="addAccountFromSite()" class="btn">
+                    <i class="fas fa-qrcode"></i> Добавить аккаунт
+                </button>
+                <a href="/warmup.html" class="btn btn-warmup">
+                    <i class="fas fa-fire"></i> Прогрев
+                </a>
+                <button onclick="showProxies()" class="btn" style="background:#666;">
+                    <i class="fas fa-shield-alt"></i> Прокси
+                </button>
+            </div>
+        </header>
+
+        <div class="user-info">
+            <div>
+                <span class="label">Ваш Telegram ID:</span>
+                <input type="text" id="userIdInput" placeholder="Введите ваш ID" style="width:150px;margin-left:10px;">
+                <button onclick="saveUserId()" class="btn" style="padding:6px 14px;font-size:12px;margin-left:10px;">Сохранить</button>
+            </div>
+            <div id="userStatus" style="font-size:13px;color:#666;"></div>
+        </div>
+
+        <div id="accountsGrid" class="accounts-grid"></div>
+
+        <div class="send-section">
+            <h3><i class="fas fa-paper-plane"></i> Отправить сообщение</h3>
+            <div class="send-form">
+                <select id="sendAccountSelect"></select>
+                <input type="text" id="sendPhone" placeholder="Номер: 79991234567">
+                <input type="text" id="sendMessage" placeholder="Сообщение...">
+                <button onclick="sendMessageByNumber()" class="btn">
+                    <i class="fas fa-paper-plane"></i> Отправить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка QR -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content" style="max-width:520px;text-align:center;">
+            <span class="close" onclick="closeQRModal()">&times;</span>
+            <h2 id="qrTitle" style="color:#075e54;">Вход в WhatsApp</h2>
+            <p id="qrStatus" style="margin:12px 0;color:#666;font-size:14px;">Создаем QR-код…</p>
+            <div id="qrLoader" class="loader"></div>
+            <img id="qrImage" alt="QR WhatsApp" style="display:none;width:360px;max-width:100%;margin:15px auto;border-radius:12px;image-rendering:auto;">
+            <button onclick="closeQRModal()" class="btn" style="margin-top:10px;background:#666;">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модалка прокси -->
+    <div id="proxyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProxies()">&times;</span>
+            <h2><i class="fas fa-shield-alt"></i> Прокси</h2>
+            <p style="margin:15px 0;color:#666;font-size:13px;">
+                Введите прокси (по одному на строку):<br>
+                Формат: <code>IP:PORT:USER:PASS</code>
+            </p>
+            <textarea id="proxyTextarea" style="width:100%;min-height:200px;padding:10px;border:2px solid #e0e0e0;border-radius:10px;font-family:monospace;font-size:12px;" placeholder="192.168.1.1:8080:user:pass&#10;192.168.1.2:8080:user:pass"></textarea>
+            <button onclick="saveProxies()" class="btn" style="width:100%;margin-top:15px;">
+                <i class="fas fa-save"></i> Сохранить прокси
+            </button>
+            <p style="margin-top:10px;font-size:12px;color:#999;">
+                ⚠️ Прокси применяются при подключении новых аккаунтов
+            </p>
+        </div>
+    </div>
+
+    <!-- Модалка чатов -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <span class="close" onclick="document.getElementById('chatModal').style.display='none'">&times;</span>
+            <h2 id="chatAccountName">Чаты</h2>
+            <div id="chatList" style="max-height:500px;overflow-y:auto;margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
